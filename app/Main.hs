@@ -10,10 +10,10 @@ type Size     = Float
 type Velocity = (Float, Float)
 
 width :: (Ord a, Num a) => a
-width = 1500
+width = 900
 
 height :: (Ord a, Num a) => a
-height = 1500
+height = 900
 
 data Me = Me Size Location Velocity -- could also just be a generic Fish
     deriving (Eq, Show)
@@ -61,8 +61,7 @@ simulateLake timeStep (Play fishies me@(Me mySize myPos myVel))
         updateFishie f@(Fish s l v)
                 = Fish s (restoreToScreen (l .+ timeStep .* v)) v
 
--- todo: destroy fishie after it's eaten >:)
-{- 
+{- todo: destroy fishie after it's eaten >:)
         updateFishie :: Fish -> Me -> Maybe Fish
         updateFishie f@(Fish s l v) m@(Me myS _ _)
             | collidesWith f && s < myS = Nothing
@@ -75,14 +74,24 @@ restoreToScreen (x,y) = (cycleCoordinates x, cycleCoordinates y)
 
 cycleCoordinates :: (Ord a, Num a) => a -> a
 cycleCoordinates x 
-    | x < (-400) = width+x
-    | x > 400    = x-width
+    | x < (-475) = 950+x
+    | x > 475    = x-950
     | otherwise  = x
 
+handleEvents :: Event -> Lake -> Lake 
+handleEvents (EventKey (MouseButton LeftButton) Down _ _) GameOver = initialLake
+handleEvents (EventKey (MouseButton LeftButton) Down _ clickPos)
+        (Play fishies (Me s myPos myVel)) = Play fishies (Me s myPos newVel)
+        where 
+            newVel  = myVel  .+ (50 .* norm (myPos .- clickPos))
+handleEvents _ w = w            
+
 main :: IO ()
-main = simulate (InWindow "Look at the fishies go!" (width,height) (20,20)) 
-        black 
+main = play 
+        (InWindow "Kalapeli!" (width,height) (20,20)) 
+        (makeColorI 81 162 196 255)
         24 
         initialLake
         drawWorld 
-        (\view -> simulateLake)
+        handleEvents
+        simulateLake
