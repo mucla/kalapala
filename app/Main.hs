@@ -65,8 +65,8 @@ drawWorld (Play fishies (Me size (x,y) (vx,vy)))
      where
         me      = color black (pictures [translate x y (circle size)])
         fish    = pictures [translate x y (color green (circle s)) | Fish s (x,y) _ <- fishies]
-        debugScreen = scale 0.1 0.1 . translate (width*5.5) (height*5.5) . color white . text $ debugTexts 
-        debugTexts = if debugMode then "debug" else ""   
+        debugScreen = scale 0.1 0.1 . translate (width*5) (height*5.5) . color white . text $ debugTexts 
+        debugTexts = if debugMode then "x: " ++ show (ceiling x) ++ " y:" ++ show (ceiling y) else ""   
 
 simulateLake :: Float -> (Lake -> Lake)
 simulateLake _ GameOver     = GameOver
