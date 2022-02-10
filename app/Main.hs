@@ -66,7 +66,7 @@ drawWorld (Play fishies (Me size (x,y) (vx,vy)))
         me      = color black (pictures [translate x y (circle size)])
         fish    = pictures [translate x y (color green (circle s)) | Fish s (x,y) _ <- fishies]
         debugScreen = scale 0.1 0.1 . translate (width*5) (height*5.5) . color white . text $ debugTexts 
-        debugTexts = if debugMode then "x: " ++ show (ceiling x) ++ " y:" ++ show (ceiling y) else ""   
+        debugTexts = if debugMode then show width ++ "x" ++ show height ++ " x: " ++ show (ceiling x) ++ " y:" ++ show (ceiling y) else ""   
 
 simulateLake :: Float -> (Lake -> Lake)
 simulateLake _ GameOver     = GameOver
@@ -81,13 +81,13 @@ simulateLake timeStep (Play fishies me@(Me mySize myPos myVel@(x,y)))
     where 
         -- todo: check and fix 
         myNewPos :: Location 
-        myNewPos = if checkIfHittingWalls myVel then (myPos) else (myPos .+ timeStep .* myVel) 
+        myNewPos = if checkIfHittingWalls myPos then (myPos .+ timeStep .* (-1 * myVel)) else (myPos .+ timeStep .* myVel) 
 
         myNewVel :: Location 
-        myNewVel = if checkIfHittingWalls myVel then (-10,-10) else myVel
+        myNewVel = if checkIfHittingWalls myPos then -1*(myVel) else myVel
 
         collidesWithBiggerFish :: Location -> Size -> Fish -> Bool
-        collidesWithBiggerFish l s (Fish fs fl _) = (isInSamePosition l fl fs) && (fs > s) 
+        collidesWithBiggerFish l s (Fish fs fl _) = (isInSamePosition l fl fs) && (fs >= s) 
 
         -- todo optional : fish of same size are treated differently?
         collidesWithSmallerFish :: Location -> Size -> Fish -> Bool
@@ -108,12 +108,11 @@ simulateLake timeStep (Play fishies me@(Me mySize myPos myVel@(x,y)))
        
        
 checkIfHittingWalls :: Location -> Bool
-checkIfHittingWalls (x, y) = (checkCoordinates x width) && (checkCoordinates y height)
+checkIfHittingWalls (x, y) = (checkCoordinates x width) || (checkCoordinates y height)
 
 checkCoordinates :: (Ord a, Num a, RealFloat a) => a -> a -> Bool
-checkCoordinates x max
-    | x < ((-max) * 0.5) = True
-    | x > (max * 0.5)  = True
+checkCoordinates n max
+    | n < ((-max) *0.58) || n > (max*0.58)  = True
     | otherwise  = False
 
 handleEvents :: Event -> Lake -> Lake 
