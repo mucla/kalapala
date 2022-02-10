@@ -30,14 +30,14 @@ data Lake = Play [Fish] Me
 
 initialLake :: Lake
 initialLake = Play 
-    [ Fish 3 (40,500) (2,6)
-    , Fish 13 (10, 100) (-2, -8)
+    [ Fish 3 (40, 200) (0,6)
+    , Fish 13 (-10, 100) (2, -8)
     ]
     (Me 10 (0, 0) (0,0))
 
 drawWorld :: Lake -> Picture
 drawWorld GameOver
-    = Pictures [scale 0.3 0.3
+    = Pictures [scale 0.25 0.25
      . translate (-700) 0
      . color white
      . text 
@@ -61,24 +61,30 @@ drawWorld Winning
      $ "Press F1 to play again"]
 
 drawWorld (Play fishies (Me size (x,y) (vx,vy)))
-    = pictures [me, fish]
+    = pictures [me, fish, debugScreen]
      where
         me      = color black (pictures [translate x y (circle size)])
         fish    = pictures [translate x y (color green (circle s)) | Fish s (x,y) _ <- fishies]
+        debugScreen = scale 0.1 0.1 . translate (width*5.5) (height*5.5) . color white . text $ debugTexts 
+        debugTexts = if debugMode then "debug" else ""   
 
 simulateLake :: Float -> (Lake -> Lake)
 simulateLake _ GameOver     = GameOver
 simulateLake _ Winning      = Winning
-simulateLake timeStep (Play fishies me@(Me mySize myPos myVel))
+simulateLake timeStep (Play fishies me@(Me mySize myPos myVel@(x,y)))
     | any (collidesWithBiggerFish myPos mySize) fishies = GameOver 
     | any (collidesWithSmallerFish myPos mySize) fishies = Play (map updateFishie (updatedFishiesWhenEaten myPos fishies))
                         (Me (mySize + 5) myNewPos myVel) 
     | fishies == [] = Winning                    
     | otherwise = Play (map updateFishie fishies)
-                        (Me mySize myNewPos myVel)
+                        (Me mySize myNewPos myNewVel)
     where 
+        -- todo: check and fix 
         myNewPos :: Location 
-        myNewPos = restoreToScreen (myPos .+ timeStep .* myVel)
+        myNewPos = if checkIfHittingWalls myVel then (myPos) else (myPos .+ timeStep .* myVel) 
+
+        myNewVel :: Location 
+        myNewVel = if checkIfHittingWalls myVel then (-10,-10) else myVel
 
         collidesWithBiggerFish :: Location -> Size -> Fish -> Bool
         collidesWithBiggerFish l s (Fish fs fl _) = (isInSamePosition l fl fs) && (fs > s) 
@@ -91,8 +97,8 @@ simulateLake timeStep (Play fishies me@(Me mySize myPos myVel))
         isInSamePosition mylocation fishlocation fishsize = magV (mylocation .- fishlocation) < fishsize
 
         updateFishie :: Fish -> Fish
-        updateFishie f@(Fish s l v)
-                = Fish s (restoreToScreen (l .+ timeStep .* v)) v
+        updateFishie f@(Fish s l v@(x, y))
+                = if checkIfHittingWalls v then Fish s l (0,0) else Fish s (l .+ timeStep .* v) v
 
         updatedFishiesWhenEaten :: Location -> [Fish] -> [Fish]
         updatedFishiesWhenEaten _ [] = []
@@ -100,14 +106,15 @@ simulateLake timeStep (Play fishies me@(Me mySize myPos myVel))
             then updatedFishiesWhenEaten myloc xs 
             else f:updatedFishiesWhenEaten myloc xs
        
-restoreToScreen :: Location -> Location
-restoreToScreen (x,y) = (cycleCoordinates x, cycleCoordinates y)
+       
+checkIfHittingWalls :: Location -> Bool
+checkIfHittingWalls (x, y) = (checkCoordinates x width) && (checkCoordinates y height)
 
-cycleCoordinates :: (Ord a, Num a) => a -> a
-cycleCoordinates x 
-    | x < (-475) = 950+x
-    | x > 475    = x-950
-    | otherwise  = x
+checkCoordinates :: (Ord a, Num a, RealFloat a) => a -> a -> Bool
+checkCoordinates x max
+    | x < ((-max) * 0.5) = True
+    | x > (max * 0.5)  = True
+    | otherwise  = False
 
 handleEvents :: Event -> Lake -> Lake 
 -- handleEvents (EventKey (MouseButton LeftButton) Down _ _) GameOver = initialLake
@@ -123,7 +130,8 @@ handleEvents _ w = w
 
 main :: IO ()
 main = play 
-        (InWindow "Kalapeli!" (width,height) (20,20)) 
+        -- (InWindow "Kalapeli!" (width,height) (20,20)) 
+        FullScreen
         (makeColorI 11 64 82 255)
         24 
         initialLake
