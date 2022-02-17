@@ -79,12 +79,15 @@ simulateLake timeStep (Play fishies me@(Me mySize myPos myVel@(x,y)))
     | otherwise = Play (map updateFishie fishies)
                         (Me mySize myNewPos myNewVel)
     where 
-        -- todo: check and fix 
         myNewPos :: Location 
-        myNewPos = if checkIfHittingWalls myPos then (myPos .+ timeStep .* (-1 * myVel)) else (myPos .+ timeStep .* myVel) 
+        myNewPos = myPos .+ timeStep .* myNewVel
 
-        myNewVel :: Location 
-        myNewVel = if checkIfHittingWalls myPos then -1*(myVel) else myVel
+        myNewVel :: Velocity 
+        myNewVel = case (checkIfHittingWalls myPos) of 
+            (False, False) -> myVel
+            (True, False) -> (-x, y)
+            (False, True) -> (x, -y)
+            (True, True)  ->  -1*(myVel)
 
         collidesWithBiggerFish :: Location -> Size -> Fish -> Bool
         collidesWithBiggerFish l s (Fish fs fl _) = (isInSamePosition l fl fs) && (fs >= s) 
@@ -97,8 +100,8 @@ simulateLake timeStep (Play fishies me@(Me mySize myPos myVel@(x,y)))
         isInSamePosition mylocation fishlocation fishsize = magV (mylocation .- fishlocation) < fishsize
 
         updateFishie :: Fish -> Fish
-        updateFishie f@(Fish s l v@(x, y))
-                = if checkIfHittingWalls v then Fish s l (0,0) else Fish s (l .+ timeStep .* v) v
+        updateFishie f@(Fish s l@(x, y) v)
+                = if flatCheckIfHittingWalls l then Fish s l (0,0) else Fish s (l .+ timeStep .* v) v
 
         updatedFishiesWhenEaten :: Location -> [Fish] -> [Fish]
         updatedFishiesWhenEaten _ [] = []
@@ -107,12 +110,17 @@ simulateLake timeStep (Play fishies me@(Me mySize myPos myVel@(x,y)))
             else f:updatedFishiesWhenEaten myloc xs
        
        
-checkIfHittingWalls :: Location -> Bool
-checkIfHittingWalls (x, y) = (checkCoordinates x width) || (checkCoordinates y height)
+flatCheckIfHittingWalls :: Location -> Bool
+flatCheckIfHittingWalls (x, y) = case checkIfHittingWalls (x,y) of 
+    (False, False) -> False
+    (_, _) -> True
+
+checkIfHittingWalls :: Location -> (Bool, Bool)
+checkIfHittingWalls (x, y) = (checkCoordinates x width, checkCoordinates y height)
 
 checkCoordinates :: (Ord a, Num a, RealFloat a) => a -> a -> Bool
 checkCoordinates n max
-    | n < ((-max) *0.58) || n > (max*0.58)  = True
+    | n < ((-max) *0.58) || n > (max*0.58)  = True -- todo: find out why this number is so arbitrary
     | otherwise  = False
 
 handleEvents :: Event -> Lake -> Lake 
@@ -122,7 +130,7 @@ handleEvents (EventKey (SpecialKey KeyF1) Down _ _) Winning = initialLake
 handleEvents (EventKey (MouseButton LeftButton) Down _ clickPos)
         (Play fishies (Me s myPos myVel)) = Play fishies (Me s myPos newVel)
         where 
-            newVel  = myVel  .+ (50 .* norm (myPos .- clickPos))
+            newVel  = if myVel < (200, 200) then myVel .+ (25 .* norm (myPos .- clickPos)) else myVel -- todo: make a separate case for both x and y? Check what operand < does for tuples first
 handleEvents (EventKey (SpecialKey KeyF5) Down _ _) w = if debugMode then Winning else w   -- instant win with F5 when debugging          
 handleEvents (EventKey (SpecialKey KeyF4) Down _ _) w = if debugMode then GameOver else w  -- instant loss with F4 when debugging           
 handleEvents _ w = w            
