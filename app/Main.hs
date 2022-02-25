@@ -30,8 +30,11 @@ data Lake = Play [Fish] Me
 
 initialLake :: Lake
 initialLake = Play 
-    [ Fish 3 (40, 200) (0,6)
-    , Fish 13 (-10, 100) (2, -8)
+    [ Fish 3 (60, 200) (0,6)
+    , Fish 13 (-55, 100) (2, -8)
+    , Fish 20 (-70, 20) (2, 12)
+    , Fish 5 (200, 400) (3,5)
+    , Fish 4 (100, 200) (25, 25)
     ]
     (Me 10 (0, 0) (0,0))
 
@@ -73,7 +76,7 @@ simulateLake _ GameOver     = GameOver
 simulateLake _ Winning      = Winning
 simulateLake timeStep (Play fishies me@(Me mySize myPos myVel@(x,y)))
     | any (collidesWithBiggerFish myPos mySize) fishies = GameOver 
-    | any (collidesWithSmallerFish myPos mySize) fishies = Play (map updateFishie (updatedFishiesWhenEaten myPos fishies))
+    | any (collidesWithSmallerFish myPos mySize) fishies = Play (map updateFishie (updatedFishiesWhenEaten myPos fishies mySize))
                         (Me (mySize + 5) myNewPos myVel) 
     | fishies == [] = Winning                    
     | otherwise = Play (map updateFishie fishies)
@@ -90,24 +93,24 @@ simulateLake timeStep (Play fishies me@(Me mySize myPos myVel@(x,y)))
             (True, True)  ->  -1*(myVel)
 
         collidesWithBiggerFish :: Location -> Size -> Fish -> Bool
-        collidesWithBiggerFish l s (Fish fs fl _) = (isInSamePosition l fl fs) && (fs >= s) 
+        collidesWithBiggerFish l s (Fish fs fl _) = (isInSamePosition l fl fs s) && (fs >= s) 
 
         -- todo optional : fish of same size are treated differently?
         collidesWithSmallerFish :: Location -> Size -> Fish -> Bool
-        collidesWithSmallerFish l s (Fish fs fl _) = (isInSamePosition l fl fs) && (fs < s) 
+        collidesWithSmallerFish l s (Fish fs fl _) = (isInSamePosition l fl fs s) && (fs < s) 
 
-        isInSamePosition :: Location -> Location -> Size -> Bool
-        isInSamePosition mylocation fishlocation fishsize = magV (mylocation .- fishlocation) < fishsize
+        isInSamePosition :: Location -> Location -> Size -> Size -> Bool
+        isInSamePosition mylocation fishlocation fishSize mySize = magV (mylocation .- fishlocation) < (mySize + fishSize) -- note: size is always radius
 
         updateFishie :: Fish -> Fish
         updateFishie f@(Fish s l@(x, y) v)
                 = if flatCheckIfHittingWalls l then Fish s l (0,0) else Fish s (l .+ timeStep .* v) v
 
-        updatedFishiesWhenEaten :: Location -> [Fish] -> [Fish]
-        updatedFishiesWhenEaten _ [] = []
-        updatedFishiesWhenEaten myloc (f@(Fish s l v):xs) = if (isInSamePosition myloc l s) 
-            then updatedFishiesWhenEaten myloc xs 
-            else f:updatedFishiesWhenEaten myloc xs
+        updatedFishiesWhenEaten :: Location -> [Fish] -> Size -> [Fish]
+        updatedFishiesWhenEaten _ [] _ = []
+        updatedFishiesWhenEaten myloc (f@(Fish s l v):xs) mySize = if (isInSamePosition myloc l s mySize) 
+            then updatedFishiesWhenEaten myloc xs mySize
+            else f:updatedFishiesWhenEaten myloc xs mySize
        
        
 flatCheckIfHittingWalls :: Location -> Bool
