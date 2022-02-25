@@ -66,7 +66,7 @@ drawWorld (Play fishies (Me size (x,y) (vx,vy)))
         me      = color black (pictures [translate x y (circle size)])
         fish    = pictures [translate x y (color green (circle s)) | Fish s (x,y) _ <- fishies]
         debugScreen = scale 0.1 0.1 . translate (width*5) (height*5.5) . color white . text $ debugTexts 
-        debugTexts = if debugMode then show width ++ "x" ++ show height ++ " x: " ++ show (ceiling x) ++ " y:" ++ show (ceiling y) else ""   
+        debugTexts = if debugMode then show width ++ "x" ++ show height ++ " x: " ++ show (ceiling x) ++ " y: " ++ show (ceiling y) else ""   
 
 simulateLake :: Float -> (Lake -> Lake)
 simulateLake _ GameOver     = GameOver
@@ -130,10 +130,15 @@ handleEvents (EventKey (SpecialKey KeyF1) Down _ _) Winning = initialLake
 handleEvents (EventKey (MouseButton LeftButton) Down _ clickPos)
         (Play fishies (Me s myPos myVel)) = Play fishies (Me s myPos newVel)
         where 
-            newVel  = if myVel < (200, 200) then myVel .+ (25 .* norm (myPos .- clickPos)) else myVel -- todo: make a separate case for both x and y? Check what operand < does for tuples first
+            newVel = countNewVel myVel myPos clickPos
 handleEvents (EventKey (SpecialKey KeyF5) Down _ _) w = if debugMode then Winning else w   -- instant win with F5 when debugging          
 handleEvents (EventKey (SpecialKey KeyF4) Down _ _) w = if debugMode then GameOver else w  -- instant loss with F4 when debugging           
 handleEvents _ w = w            
+
+countNewVel :: Velocity -> Location -> (Float, Float) -> Velocity            
+countNewVel vel@(x, y) myPos clickPos
+        | x < 350 || y < 350 = vel .+ (25 .* norm (myPos .- clickPos)) 
+        | otherwise = vel
 
 main :: IO ()
 main = play 
