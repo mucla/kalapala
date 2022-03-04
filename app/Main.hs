@@ -148,7 +148,7 @@ main = play
         -- (InWindow "Kalapeli!" (width,height) (20,20)) 
         FullScreen
         (makeColorI 11 64 82 255)
-        24 
+        60 -- fps
         initialLake
         drawWorld 
         handleEvents
