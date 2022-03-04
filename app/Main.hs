@@ -5,6 +5,13 @@ import Graphics.Gloss.Interface.Pure.Simulate
 import Graphics.Gloss.Interface.Pure.Display
 
 import Lib
+                                
+-- ##### #   # #####  ######  ####  
+--   #    # #  #    # #      #      
+--   #     #   #    # #####   ####  
+--   #     #   #####  #           # 
+--   #     #   #      #      #    # 
+--   #     #   #      ######  ####  
 
 type Size     = Float
 type Velocity = (Float, Float)
@@ -27,6 +34,15 @@ data Lake = Play [Fish] Me
     | GameOver 
     | Winning
     deriving (Eq, Show)
+
+                                  
+                                                                       
+--     ####    ##   #    # ######     ####  #####   ##   ##### ######  ####  
+--    #    #  #  #  ##  ## #         #        #    #  #    #   #      #      
+--    #      #    # # ## # #####      ####    #   #    #   #   #####   ####  
+--    #  ### ###### #    # #              #   #   ######   #   #           # 
+--    #    # #    # #    # #         #    #   #   #    #   #   #      #    # 
+--     ####  #    # #    # ######     ####    #   #    #   #   ######  ####    
 
 initialLake :: Lake
 initialLake = Play 
@@ -111,7 +127,13 @@ simulateLake timeStep (Play fishies me@(Me mySize myPos myVel@(x,y)))
         updatedFishiesWhenEaten myloc (f@(Fish s l v):xs) mySize = if (isInSamePosition myloc l s mySize) 
             then updatedFishiesWhenEaten myloc xs mySize
             else f:updatedFishiesWhenEaten myloc xs mySize
-       
+                                                  
+--   ####  #    # ######  ####  #    #  ####  
+--  #    # #    # #      #    # #   #  #      
+--  #      ###### #####  #      ####    ####  
+--  #      #    # #      #      #  #        # 
+--  #    # #    # #      #    # #   #  #    # 
+--   ####  #    # ######  ####  #    #  ####              
        
 flatCheckIfHittingWalls :: Location -> Bool
 flatCheckIfHittingWalls (x, y) = case checkIfHittingWalls (x,y) of 
@@ -125,7 +147,15 @@ checkCoordinates :: (Ord a, Num a, RealFloat a) => a -> a -> Bool
 checkCoordinates n max
     | n < ((-max) *0.58) || n > (max*0.58)  = True -- todo: find out why this number is so arbitrary
     | otherwise  = False
+                                  
+--    ######  #    # ###### #    # #####  ####     
+--    #       #    # #      ##   #   #   #         
+--    #####   #    # #####  # #  #   #    ####     
+--    #       #    # #      #  # #   #        #    
+--    #        #  #  #      #   ##   #   #    #    
+--    ######    ##   ###### #    #   #    ####     
 
+    
 handleEvents :: Event -> Lake -> Lake 
 -- handleEvents (EventKey (MouseButton LeftButton) Down _ _) GameOver = initialLake
 handleEvents (EventKey (SpecialKey KeyF1) Down _ _) GameOver = initialLake

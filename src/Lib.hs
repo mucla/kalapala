@@ -1,5 +1,13 @@
 module Lib where
 
+--
+--
+--
+--
+--
+--
+
+
 type Location = (Float, Float)
 
 (.-) , (.+) :: Location -> Location -> Location
