@@ -25,7 +25,7 @@ height = 9 * 100
 debugMode :: Bool 
 debugMode = True
 
-data Me = Me Size Location Velocity -- could also just be a generic Fish
+data Me = Me Size Location Velocity -- could also just be a generic Fish but let's separate types for now
     deriving (Eq, Show)
 data Fish = Fish Size Location Velocity
     deriving (Eq, Show)
@@ -48,7 +48,7 @@ initialLake :: Lake
 initialLake = Play 
     [ Fish 3 (60, 200) (0,6)
     , Fish 13 (-55, 100) (2, -8)
-    , Fish 20 (-70, 20) (2, 12)
+    , Fish 20 (-70, 20) (20, 12)
     , Fish 5 (200, 400) (3,5)
     , Fish 4 (100, 200) (25, 25)
     ]
@@ -84,7 +84,7 @@ drawWorld (Play fishies (Me size (x,y) (vx,vy)))
      where
         me      = color black (pictures [translate x y (circle size)])
         fish    = pictures [translate x y (color green (circle s)) | Fish s (x,y) _ <- fishies]
-        debugScreen = scale 0.1 0.1 . translate (width*5) (height*5.5) . color white . text $ debugTexts 
+        debugScreen = scale 0.1 0.1 . translate (width * (-5.5)) (height*5.5) . color white . text $ debugTexts 
         debugTexts = if debugMode then show width ++ "x" ++ show height ++ " x: " ++ show (ceiling x) ++ " y: " ++ show (ceiling y) else ""   
 
 simulateLake :: Float -> (Lake -> Lake)
@@ -96,17 +96,17 @@ simulateLake timeStep (Play fishies me@(Me mySize myPos myVel@(x,y)))
                         (Me (mySize + 5) myNewPos myVel) 
     | fishies == [] = Winning                    
     | otherwise = Play (map updateFishie fishies)
-                        (Me mySize myNewPos myNewVel)
+                        (Me mySize myNewPos $ calcNewVel myVel myPos)
     where 
         myNewPos :: Location 
-        myNewPos = myPos .+ timeStep .* myNewVel
+        myNewPos = myPos .+ timeStep .* calcNewVel myVel myPos
 
-        myNewVel :: Velocity 
-        myNewVel = case (checkIfHittingWalls myPos) of 
-            (False, False) -> myVel
-            (True, False) -> (-x, y)
-            (False, True) -> (x, -y)
-            (True, True)  ->  -1*(myVel)
+        calcNewVel :: Velocity -> Location -> Velocity 
+        calcNewVel vel@(xx,yy) pos = case (checkIfHittingWalls pos) of 
+            (False, False) -> vel
+            (True, False) -> (-xx, yy)
+            (False, True) -> (xx, -yy)
+            (True, True)  ->  -1*(vel)
 
         collidesWithBiggerFish :: Location -> Size -> Fish -> Bool
         collidesWithBiggerFish l s (Fish fs fl _) = (isInSamePosition l fl fs s) && (fs >= s) 
@@ -120,7 +120,7 @@ simulateLake timeStep (Play fishies me@(Me mySize myPos myVel@(x,y)))
 
         updateFishie :: Fish -> Fish
         updateFishie f@(Fish s l@(x, y) v)
-                = if flatCheckIfHittingWalls l then Fish s l (0,0) else Fish s (l .+ timeStep .* v) v
+                = Fish s (l .+ timeStep .* calcNewVel v l) (calcNewVel v l)
 
         updatedFishiesWhenEaten :: Location -> [Fish] -> Size -> [Fish]
         updatedFishiesWhenEaten _ [] _ = []
@@ -141,13 +141,18 @@ flatCheckIfHittingWalls (x, y) = case checkIfHittingWalls (x,y) of
     (_, _) -> True
 
 checkIfHittingWalls :: Location -> (Bool, Bool)
-checkIfHittingWalls (x, y) = (checkCoordinates x width, checkCoordinates y height)
+checkIfHittingWalls (x, y) = (checkCoordinates x (width+50), checkCoordinates y (height+20))
 
 checkCoordinates :: (Ord a, Num a, RealFloat a) => a -> a -> Bool
 checkCoordinates n max
     | n < ((-max) *0.58) || n > (max*0.58)  = True -- todo: find out why this number is so arbitrary
     | otherwise  = False
-                                  
+              
+countNewVel :: Velocity -> Location -> (Float, Float) -> Velocity            
+countNewVel vel@(x, y) myPos clickPos
+        | x < 350 || y < 350 = vel .+ (25 .* norm (myPos .- clickPos)) 
+        | otherwise = vel
+        
 --    ######  #    # ###### #    # #####  ####     
 --    #       #    # #      ##   #   #   #         
 --    #####   #    # #####  # #  #   #    ####     
@@ -168,16 +173,12 @@ handleEvents (EventKey (SpecialKey KeyF5) Down _ _) w = if debugMode then Winnin
 handleEvents (EventKey (SpecialKey KeyF4) Down _ _) w = if debugMode then GameOver else w  -- instant loss with F4 when debugging           
 handleEvents _ w = w            
 
-countNewVel :: Velocity -> Location -> (Float, Float) -> Velocity            
-countNewVel vel@(x, y) myPos clickPos
-        | x < 350 || y < 350 = vel .+ (25 .* norm (myPos .- clickPos)) 
-        | otherwise = vel
 
 main :: IO ()
 main = play 
         -- (InWindow "Kalapeli!" (width,height) (20,20)) 
         FullScreen
-        (makeColorI 11 64 82 255)
+        (makeColorI 30 60 66 255)
         60 -- fps
         initialLake
         drawWorld 
